@@ -14,18 +14,20 @@
 [dal struct](./example/internal/dal/project_model_common_dal.go)  
 
 ### How to use
+依赖 go1.16 +
+
 #### install 
 ```
-go get github.com/lizhennet/gorm-gen/cmd
+go get github.com/lizhennet/gorm-gen
 ```
 
 #### Use
 1. 创建 generator 需要的配置文件 [示例](./example/config/gorm-gen.yml)
-2. 执行生成 struct  
+2. 在项目根目录执行生成生成对应的 struct   
 
 只生成model
 ```
-gorm-gen model  tableName   
+gorm-gen model  tableName  --config 配置文件地址，没有指定 默认 ./config/gorm-gen.yml
 ```
 生成model&Dal
 ```

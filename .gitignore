@@ -130,6 +130,7 @@ fabric.properties
 ### Go Patch ###
 /vendor/
 /Godeps/
-
+yes
+yes.pub
 # End of https://www.toptal.com/developers/gitignore/api/go
 gorm-gen
