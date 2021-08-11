@@ -1,0 +1,19 @@
+package {{.Package}}
+
+{{if gt (len .Imports) 0}}
+import (
+    {{range .Imports}}
+        {{.}}
+    {{end}}
+)
+{{end}}
+
+type {{.ClassName}} struct {
+    {{- range .Fields}}
+        {{.FieldName}} {{if .IsNullAble}} *{{- .FieldType}} {{else}} {{- .FieldType}} {{end}}  `{{- range .FiledTags}} {{.}} {{end -}}`  //{{.FieldDescription}}
+    {{- end}}
+}
+
+func ({{.ClassName}}) TableName() string {
+	return "{{.TableName}}"
+}

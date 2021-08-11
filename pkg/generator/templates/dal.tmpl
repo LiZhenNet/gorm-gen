@@ -1,0 +1,188 @@
+package {{.DalPackage}}
+
+{{if gt (len .Imports) 0}}
+import (
+    {{range .Imports}}
+        {{- . -}}
+    {{end}}
+)
+{{end}}
+{{ $condition := getConditionName .ModelMeta}}
+
+
+type {{$condition}} struct {
+    where  []map[string]interface{}
+    order  []string
+    offset int
+    limit  int
+}
+
+func New{{- $condition}}() *{{$condition}} {
+	return &{{$condition}}{}
+}
+
+func (c *{{$condition}}) clone() *{{$condition}}{
+	clone := *c
+	return &clone
+}
+
+func (c *{{$condition}}) Offset(offset int) *{{$condition}}{
+	c.offset = offset
+	return c
+}
+
+func (c *{{$condition}}) Limit(limit int) *{{$condition}}{
+	c.limit = limit
+	return c
+}
+
+func (c *{{$condition}}) Page(pageNo,pageSize int) *{{$condition}}{
+    c.offset = (pageNo - 1) * pageSize
+	c.limit = pageSize
+	return c
+}
+
+func (c *{{$condition}}) Out(db *gorm.DB) *gorm.DB {
+    for _,w := range c.where{
+        for k, v := range w {
+            db = db.Where(k,v)
+        }
+    }
+    for _, o:= range c.order{
+        db = db.Order(o)
+    }
+    if c.offset != 0 {
+        db = db.Offset(c.offset)
+    }
+    if c.limit != 0 {
+        db = db.Limit(c.limit)
+    }
+	return db
+}
+
+{{- range .Fields}}
+
+func (c *{{$condition}}) {{.FieldName}}Equal(v {{.FieldType}}) *{{$condition}}{
+	c.where = append(c.where, map[string]interface{}{"{{.ColumnName}} = ?": v})
+	return c
+}
+
+func (c *{{$condition}}) {{.FieldName}}NotEqual(v {{.FieldType}}) *{{$condition}}{
+	c.where = append(c.where, map[string]interface{}{"{{.ColumnName}} != ?": v})
+	return c
+}
+
+func (c *{{$condition}}) {{.FieldName}}LessThan(v {{.FieldType}}) *{{$condition}}{
+	c.where = append(c.where, map[string]interface{}{"{{.ColumnName}} < ?": v})
+	return c
+}
+
+func (c *{{$condition}}) {{.FieldName}}LessThanOrEqualTo(v {{.FieldType}}) *{{$condition}}{
+	c.where = append(c.where, map[string]interface{}{"{{.ColumnName}} <= ?": v})
+	return c
+}
+
+func (c *{{$condition}}) {{.FieldName}}GreaterThan(v {{.FieldType}}) *{{$condition}}{
+	c.where = append(c.where, map[string]interface{}{"{{.ColumnName}} > ?": v})
+	return c
+}
+
+func (c *{{$condition}}) {{.FieldName}}GreaterThanOrEqualTo(v {{.FieldType}}) *{{$condition}}{
+	c.where = append(c.where, map[string]interface{}{"{{.ColumnName}} >= ?": v})
+	return c
+}
+
+func (c *{{$condition}}) {{.FieldName}}In(v []{{.FieldType}}) *{{$condition}}{
+	c.where = append(c.where, map[string]interface{}{"{{.ColumnName}} IN (?)": v})
+	return c
+}
+
+func (c *{{$condition}}) {{.FieldName}}NotIn(v []{{.FieldType}}) *{{$condition}}{
+	c.where = append(c.where, map[string]interface{}{"{{.ColumnName}} NOT IN (?)": v})
+	return c
+}
+
+{{ if eq .FieldType "string"}}
+func (c *{{$condition}}) {{.FieldName}}Like(v {{.FieldType}}) *{{$condition}}{
+	c.where = append(c.where, map[string]interface{}{"{{.ColumnName}} LIKE ? ": v})
+	return c
+}
+{{- end}}
+
+func (c *{{$condition}}) OrderBy{{.FieldName}}() *{{$condition}}{
+	c.order = append(c.order,"{{.ColumnName}}")
+	return c
+}
+
+func (c *{{$condition}}) OrderBy{{.FieldName}}Desc() *{{$condition}}{
+	c.order = append(c.order,"{{.ColumnName}} DESC")
+	return c
+}
+
+{{- end}}
+
+
+{{ $updater := getUpdateModelName .ModelMeta}}
+
+type {{$updater}} struct {
+    values map[string]interface{}
+}
+
+func New{{- $updater}}() *{{$updater}} {
+	return &{{$updater}}{values:map[string]interface{}{}}
+}
+
+func (u *{{$updater}}) Values() map[string]interface{} {
+	return u.values
+}
+
+{{- range .Fields}}
+func (u *{{$updater}}) {{.FieldName}} (v {{.FieldType}}) *{{$updater}}{
+	u.values["{{.ColumnName}}"] = v
+	return u
+}
+{{- end}}
+
+
+{{ $dal := getDalName .ModelMeta}}
+{{ $modelRef := getModelRefName .ModelMeta}}
+
+
+type {{$dal}} struct {
+}
+
+func (d {{$dal}}) Insert(db *gorm.DB,value *{{- $modelRef}}) (int64,error) {
+	result := db.Create(value)
+	return result.RowsAffected,result.Error
+}
+
+func (d {{$dal}}) BatchInsert(db *gorm.DB,value *[]{{- $modelRef}}) error {
+	result := db.Create(value)
+	return result.Error
+}
+
+func (d {{$dal}}) DeleteByCondition(db *gorm.DB, condition *{{$condition}}) (int64,error) {
+	db = condition.Out(db)
+	result := db.Delete(&{{- $modelRef -}}{})
+	return result.RowsAffected,result.Error
+}
+
+func (d {{$dal}}) UpdateByCondition(db *gorm.DB, condition *{{$condition}}, updater *{{$updater}}) (int64,error) {
+	db = condition.Out(db)
+	result := db.Model(&{{- $modelRef -}}{}).Updates(updater.Values())
+	return result.RowsAffected,result.Error
+}
+
+func (d {{$dal}}) SelectByCondition(db *gorm.DB, condition *{{$condition}}) ([]*{{- $modelRef -}},error) {
+	db = condition.Out(db)
+	ret:=  make([]*{{- $modelRef -}}, 0)
+	result := db.Model(&{{- $modelRef -}}{}).Find(&ret)
+	return ret,result.Error
+}
+
+func (d {{$dal}}) CountByCondition(db *gorm.DB, condition *{{$condition}}) (int64,error) {
+	db = condition.Out(db)
+	var count int64
+	result := db.Model(&{{- $modelRef -}}{}).Count(&count)
+	return count,result.Error
+}

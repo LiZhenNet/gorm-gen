@@ -1,0 +1,19 @@
+Project:
+  ProjectModule: "github.com/lizhennet/gorm-gen/example"
+  ModelPackage: "/internal/model"
+  DalPackage:  "/internal/dal"
+
+Connection:
+  Host: "127.0.0.1"
+  Port: "33066"
+  User: "root"
+  Passport: "123456"
+  Database: "demo"
+
+
+Tables:
+  - TableName: "project"
+    ModelName: "ProjectModel"
+    Columns:
+      - ColumnName: "name"
+        FieldName: "ProjectName"
